@@ -1,0 +1,9 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/RunFitPlatform.Api/RunFitPlatform.Api.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/RunFitPlatform.Api.IntegrationTests/RunFitPlatform.Api.IntegrationTests.csproj" />
+    <Project Path="tests/RunFitPlatform.Api.UnitTests/RunFitPlatform.Api.UnitTests.csproj" />
+  </Folder>
+</Solution>

@@ -1,6 +1,6 @@
 # Estrategia de pruebas
 
-> Plataforma SaaS para entrenadores de running y fuerza. Fase 2, diseño técnico pendiente de aprobación. Versiones verificadas el 29/10/2026.
+> Plataforma SaaS para entrenadores de running y fuerza. Fase 2, diseño técnico aprobado (Fase 3 iniciada el 05/11/2026). Versiones verificadas el 29/10/2026.
 
 ## 11. Estrategia de pruebas
 
@@ -10,9 +10,9 @@ Concreta la estrategia de la Fase 1 (sección 12 de `architecture-evaluation.md`
 
 | Proyecto | Herramientas | Qué contiene |
 |---|---|---|
-| `CoachPlatform.Api.UnitTests` | xUnit v3, librería de tests de arquitectura (NetArchTest o ArchUnitNET, se elige en la Fase 3 por versión con soporte .NET 10) | Reglas de dominio y tests de arquitectura |
-| `CoachPlatform.Api.IntegrationTests` | xUnit v3, `WebApplicationFactory`, Testcontainers.PostgreSql con `postgres:18` | API real contra PostgreSQL real; matriz de autorización |
-| `web` (unitarios) | Vitest (runner por defecto de Angular desde la versión 21, según la comunidad de Angular [A verificar en la documentación oficial durante la Fase 3]) | Editor de workout, conversiones de ritmo, formateo |
+| `RunFitPlatform.Api.UnitTests` | xUnit v3 sobre Microsoft.Testing.Platform, ArchUnitNET (elegida en la Fase 3: NetArchTest no publica versiones desde 2021) | Reglas de dominio y tests de arquitectura |
+| `RunFitPlatform.Api.IntegrationTests` | xUnit v3, `WebApplicationFactory`, Testcontainers.PostgreSql con `postgres:18.6` | API real contra PostgreSQL real; matriz de autorización |
+| `web` (unitarios) | Vitest, runner por defecto de `ng new` y del builder `@angular/build:unit-test` en Angular 22 [Verificado en la Fase 3] | Editor de workout, conversiones de ritmo, formateo |
 | `web/e2e` | Playwright | Flujos críticos de punta a punta |
 
 ### 11.2. Unitarias (dominio)
@@ -26,7 +26,7 @@ Concreta la estrategia de la Fase 1 (sección 12 de `architecture-evaluation.md`
 
 ### 11.3. Integración
 
-- **Base por ejecución:** un contenedor PostgreSQL por corrida de tests, migraciones aplicadas desde cero; limpieza de datos entre tests (con una librería de limpieza o un `TRUNCATE` generado, a decidir en la Fase 3).
+- **Base por ejecución:** un contenedor PostgreSQL por corrida de tests, migraciones aplicadas desde cero; limpieza de datos entre tests (con una librería de limpieza o un `TRUNCATE` generado; se decide en el Hito 1, cuando existan tablas de negocio).
 - **Usuarios reales:** cada test crea entrenadores y alumnos a través de los endpoints de invitación y hace login con cookies reales. Así se prueban de paso la cookie, el antiforgery y las políticas.
 - **Emails:** el `IEmailSender` en memoria permite leer el enlace de invitación o reseteo desde el test.
 - **Restricciones de la base:** tests que intentan saltear el dominio (insertar una membresía con otro entrenador) y verifican que la FK compuesta lo rechaza.
@@ -49,7 +49,7 @@ Los 11 escenarios de la sección 12.2 de la evaluación de arquitectura, más:
 
 ### 11.6. Contrato
 
-El build genera `openapi/v1.json`. CI falla si el archivo generado difiere del versionado: cualquier cambio de contrato queda visible en el diff del PR. Los tipos TypeScript del frontend se generan desde ese archivo (herramienta solo de tipos, por ejemplo `openapi-typescript`, a confirmar en la Fase 3).
+El build genera `openapi/v1.json`. CI falla si el archivo generado difiere del versionado: cualquier cambio de contrato queda visible en el diff del PR. Los tipos TypeScript del frontend se generan desde ese archivo (herramienta solo de tipos; `openapi-typescript` 7.13.0 exige TypeScript 5 y Angular 22 usa TypeScript 6, así que se define al implementar el primer contrato con cuerpo).
 
 ### 11.7. E2E (Playwright)
 
@@ -59,7 +59,7 @@ El build genera `openapi/v1.json`. CI falla si el archivo generado difiere del v
 4. Alumno ve su semana en viewport móvil, registra la sesión y el entrenador comenta.
 5. Entrenador consulta plan vs realizado y el progreso de un ejercicio.
 
-Se ejecutan en CI al hacer merge a `main` (no en cada PR, para mantener los PR rápidos) y antes de cada despliegue.
+Se ejecutan en CI al hacer merge a `master` (no en cada PR, para mantener los PR rápidos) y antes de cada despliegue.
 
 ### 11.8. Calidad estática
 

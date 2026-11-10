@@ -81,6 +81,6 @@ La región también tiene implicancias legales (transferencia internacional, sec
 **GitHub Actions** (asumiendo GitHub como host del repositorio [a confirmar]):
 
 - **En cada pull request:** compilar y testear el backend (unitarios + integración con PostgreSQL real vía Testcontainers), verificar formato y analizadores; lint, tests y build del frontend; comparar el documento OpenAPI generado; construir la imagen Docker.
-- **Al hacer merge a `main`:** construir y publicar la imagen; ejecutar las migraciones como paso explícito; desplegar; *smoke test* contra `/health`.
+- **Al hacer merge a `master`:** construir y publicar la imagen; ejecutar las migraciones como paso explícito; desplegar; *smoke test* contra `/health`.
 - **Entornos:** local y producción. Un entorno de staging se suma solo cuando haya usuarios que no deban ver errores, y puede ser un preview efímero por PR.
 - Rollback: volver a la imagen anterior. Por eso las migraciones son compatibles hacia atrás.

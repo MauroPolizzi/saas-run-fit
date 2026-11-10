@@ -70,7 +70,7 @@ Esto es un análisis técnico. Todo lo que sigue requiere **verificación con un
 - Nunca en logs, mensajes de error, exportaciones a terceros ni emails.
 - Se auditan el otorgamiento y la revocación del consentimiento y cada modificación (sin guardar los valores en la auditoría).
 - Cifrado en reposo: el del proveedor de base de datos [A verificar según el proveedor elegido en D6]. El cifrado a nivel de columna se posterga, pero el aislamiento en tabla propia lo deja preparado.
-- **Antes del piloto:** revisión legal del texto de consentimiento, la base legal del tratamiento y la eventual inscripción de la base de datos.
+- **Antes del piloto:** revisión legal del texto de consentimiento, la base legal del tratamiento y la eventual inscripción de la base de datos. **Verificada por Mauro el 05/11/2026.**
 
 ### 10.6. Conservación y eliminación (propuesta a validar)
 

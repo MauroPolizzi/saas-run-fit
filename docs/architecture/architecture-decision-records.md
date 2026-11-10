@@ -89,7 +89,7 @@ Propuestas el 26/10/2026. Resueltas por Mauro el 29/10/2026 salvo ADR-006, que s
 - **Mitigaciones:** rol `PlatformAdmin` asignable solo por línea de comandos; 2FA obligatoria; sesión corta; todas las acciones auditadas; **sin acceso a sesiones, registros ni datos de salud**; sin suplantación de usuarios; tests de autorización propios.
 - **Cambiaría si:** hace falta soporte con visibilidad de datos de entrenamiento. Requeriría consentimiento y revisión legal.
 
-### ADR-010. Datos de salud con consentimiento explícito — Aceptada (sujeta a revisión legal)
+### ADR-010. Datos de salud con consentimiento explícito — Aceptada (revisión legal verificada por Mauro el 05/11/2026)
 
 - **Decisión:** los datos de salud del alumno (FC máxima y en reposo, peso, lesiones, observaciones médicas) se guardan en una tabla separada, solo con consentimiento explícito, versionado y revocable. Revocar borra los datos.
 - **Alternativas:** no pedir datos de salud en el MVP (propuesta original); incluirlos en el perfil general sin consentimiento.

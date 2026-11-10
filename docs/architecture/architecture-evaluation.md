@@ -511,7 +511,7 @@ Mauro respondió las decisiones el 29/10/2026. Esta tabla registra la resolució
 | D10 | Administración | **Alternativa: panel mínimo de administración** | Nuevo módulo Admin (ADR-009) con alcance acotado, 2FA obligatoria y auditoría. Sin acceso a entrenamientos ni datos de salud |
 | D11 | Datos de salud en el perfil | **Alternativa: incluir datos de salud con consentimiento** | Nueva ADR-010: tabla separada, consentimiento explícito y versionado, revocable con borrado. **La revisión legal sigue siendo requisito antes del piloto** |
 | D12 | Idioma y unidades | **Aprobada la recomendación:** solo español, sistema métrico, ritmo en min/km, zona horaria de Argentina | Sin i18n en el MVP |
-| D13 | Repositorio y CI | **Aprobada la recomendación:** GitHub + GitHub Actions | Falta definir si el repositorio es público o privado y crearlo (necesario para la Fase 3) |
+| D13 | Repositorio y CI | **Aprobada la recomendación:** GitHub + GitHub Actions | Repositorio privado `MauroPolizzi/saas-run-fit`, rama principal `master` (05/11/2026) |
 
 ## 16. Referencias oficiales
 

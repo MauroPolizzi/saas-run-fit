@@ -15,7 +15,8 @@ Idioma de la interfaz y la documentación: **español**. Código, base de datos 
 ## Estado del proyecto
 
 - Fase 1 (arquitectura) y Fase 2 (diseño técnico): documentadas en `docs/`.
-- Fase 3 (estructura inicial): pendiente. **No implementes funcionalidades de negocio hasta que la estructura inicial esté aprobada y mergeada.**
+- Fase 3 (estructura inicial): implementada en la rama `chore/initial-structure`, pendiente de revisión y merge a `master`. Resultado y desvíos en `docs/design/technical-design.md`, sección 13.5. **No implementes funcionalidades de negocio hasta que la estructura inicial esté aprobada y mergeada.**
+- Siguiente: Hito 0 (`docs/architecture/implementation-roadmap.md`).
 - Pendientes: ver "Decisiones abiertas" al final.
 
 ## Fuentes de verdad
@@ -40,13 +41,15 @@ Antes de un cambio grande, leé el documento del área. Si el cambio altera una 
 
 | Componente | Versión |
 |---|---|
-| .NET / ASP.NET Core | 10 (LTS), fijado en `global.json` |
-| EF Core | 10.x con `Npgsql.EntityFrameworkCore.PostgreSQL` 10.x y `EFCore.NamingConventions` 10.x |
-| PostgreSQL | 18 (imagen `postgres:18` en local y tests) |
-| Angular | 22 (standalone, signals, Angular Material + CDK) |
-| Node.js | 24 LTS |
-| Tests | xUnit v3, Testcontainers.PostgreSql, `WebApplicationFactory`, Vitest, Playwright |
-| CI | GitHub Actions |
+| .NET / ASP.NET Core | 10 (LTS): SDK 10.0.401+ (`global.json`), paquetes 10.0.13 |
+| EF Core | 10.0.13 con `Npgsql.EntityFrameworkCore.PostgreSQL` 10.0.3 y `EFCore.NamingConventions` 10.0.1 |
+| PostgreSQL | 18 (imagen `postgres:18.6` en local, tests y CI) |
+| Angular | 22.2 (standalone, signals, zoneless, Angular Material + CDK 22.2.4), TypeScript 6.0.3 |
+| Node.js | 24 LTS (24.22.2) |
+| Tests | xUnit v3 sobre Microsoft.Testing.Platform, ArchUnitNET, Testcontainers.PostgreSql, `WebApplicationFactory`, Vitest 5, Playwright |
+| CI | GitHub Actions (acciones fijadas por SHA) |
+
+Las versiones exactas están en `Directory.Packages.props`, `web/package.json`, `Dockerfile`, `compose.yaml` y los workflows.
 
 Reglas de dependencias:
 
@@ -56,35 +59,38 @@ Reglas de dependencias:
 
 ## Comandos
 
-Se confirman al crear la estructura (Fase 3); actualizá esta sección si cambian.
+Confirmados en la Fase 3; actualizá esta sección si cambian.
 
 ```bash
-docker compose up -d                       # PostgreSQL 18 + Mailpit
-dotnet build                               # Solución completa
+docker compose up -d                       # PostgreSQL 18 + Mailpit (UI en http://localhost:8025)
+dotnet tool restore                        # dotnet-ef fijado en .config/dotnet-tools.json
+dotnet build                               # Solución completa (regenera openapi/v1.json)
 dotnet test                                # Unitarios + integración (requiere Docker)
 dotnet format --verify-no-changes          # Formato, igual que en CI
-dotnet run --project src/CoachPlatform.Api # API en https://localhost
-dotnet ef migrations add <Nombre> --project src/CoachPlatform.Api --output-dir Persistence/Migrations
-cd web && npm ci && npm start              # Angular con proxy a la API
-cd web && npm run lint && npm test         # Lint + Vitest
-cd web && npx playwright test              # E2E
+dotnet run --project src/RunFitPlatform.Api # API en https://localhost:5001 (migra al arrancar en Development)
+dotnet ef migrations add <Nombre> --project src/RunFitPlatform.Api --output-dir Persistence/Migrations
+dotnet ef migrations script --idempotent --project src/RunFitPlatform.Api   # Revisar el SQL
+cd web && npm ci && npm start              # Angular en http://localhost:4200 con proxy a la API
+cd web && npm run lint && npm run format:check && npm test   # Lint, Prettier y Vitest
+cd web && npm run e2e                      # Playwright (levanta ng serve si no está corriendo)
+docker build -t run-fit-platform .         # Imagen de producción
 ```
 
 ## Estructura del repositorio
 
 ```text
-src/CoachPlatform.Api/          Único proyecto de producción
+src/RunFitPlatform.Api/          Único proyecto de producción
   Modules/<Módulo>/             Accounts, Coaching, Planning, TrainingLog, Progress, Billing, Admin
     <Módulo>Module.cs           Registro de servicios y endpoints
     Contracts/                  Lo único visible para otros módulos
     Domain/                     Entidades y reglas; sin ASP.NET ni EF
     Features/<Área>/<CasoDeUso>.cs   Request, Response, Handler y Map en un archivo
     Persistence/                Configuraciones de EF del módulo
-  Shared/                       AppDbContext, seguridad, errores, email, auditoría, CLI
+  Shared/                       Configuration, Persistence (AppDbContext), Security, Web, Email, Cli
   Persistence/Migrations/       Historial único de migraciones
   openapi/v1.json               Contrato generado en build y versionado
-tests/CoachPlatform.Api.UnitTests/
-tests/CoachPlatform.Api.IntegrationTests/
+tests/RunFitPlatform.Api.UnitTests/
+tests/RunFitPlatform.Api.IntegrationTests/
 web/                            Angular: core/, shared/, features/<área>/, e2e/
 docs/                           architecture/, design/, runbooks/
 ```
@@ -174,7 +180,7 @@ Running y fuerza viven en el mismo módulo **Planning** (no los separes).
 ## Calidad, Git y PR
 
 - `Nullable` habilitado; warnings como errores en CI; `dotnet format`, ESLint y Prettier sin cambios pendientes.
-- Ramas `feat/`, `fix/`, `chore/`, `docs/` desde `main`; Conventional Commits; merge por squash con CI en verde.
+- Rama principal `master`. Ramas `feat/`, `fix/`, `chore/`, `docs/` desde `master`; Conventional Commits; merge por squash con CI en verde. Los PR los abre Mauro desde GitHub.
 - Un PR por cambio coherente. La descripción explica el porqué, las migraciones incluidas y cómo se probó.
 - Si un cambio toca seguridad, datos de salud, migraciones o contratos de API, decilo explícitamente en el PR.
 - Mantené `docs/` al día cuando cambie lo que describen.
@@ -194,8 +200,8 @@ Integraciones con Strava o Garmin, apps nativas, chat en tiempo real, notificaci
 
 | Tema | Estado | Impacto |
 |---|---|---|
-| D6. Hosting y región (Render en EE. UU., Fly.io + Neon en São Paulo, o Azure) | En evaluación | Paso de despliegue de `deploy.yml`, proxy inverso, ejecución de migraciones y del comando de administrador |
-| Nombre técnico de la solución | Provisorio: `CoachPlatform` | Namespaces y nombres de proyectos; definir antes de crear la estructura |
-| Repositorio público o privado | Sin definir | Cuota de GitHub Actions y escaneo de secretos |
-| Proveedor de email | Recomendado: Resend | Implementación de `IEmailSender` (Hito 0) |
-| Revisión legal (datos de salud, privacidad, términos) | Pendiente | Requisito antes del piloto con usuarios reales |
+| D6. Hosting y región (Render en EE. UU., Fly.io + Neon en São Paulo, o Azure) | En evaluación | Paso de despliegue de `deploy.yml` (job desactivado con `DEPLOY_ENABLED`), proxy inverso (`ReverseProxy:KnownNetworks`), migraciones y comando de administrador |
+| Proveedor de email de producción | Pendiente, junto con D6 | Hoy solo existen `Mailpit` (desarrollo) e `InMemory` (tests) |
+| Generador de tipos TypeScript desde OpenAPI | Pendiente | `openapi-typescript` 7.13.0 exige TypeScript 5 y Angular 22 usa TypeScript 6; se define al implementar el primer contrato con cuerpo |
+
+Decisiones cerradas el 05/11/2026: nombre técnico `RunFitPlatform` (proyectos .NET) y `run-fit-platform` (Angular, Docker); repositorio privado `MauroPolizzi/saas-run-fit`; rama principal `master`; email con Mailpit local por ahora; revisión legal de datos de salud verificada por Mauro.

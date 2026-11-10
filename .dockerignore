@@ -1,0 +1,26 @@
+# Todo lo que no hace falta para construir la imagen
+.git/
+.github/
+.vs/
+.vscode/
+.idea/
+.config/
+docs/
+tests/
+**/bin/
+**/obj/
+**/TestResults/
+web/node_modules/
+web/dist/
+web/.angular/
+web/coverage/
+web/e2e/
+web/playwright-report/
+web/test-results/
+src/RunFitPlatform.Api/wwwroot/
+**/*.user
+**/.env
+**/.env.*
+**/appsettings.*.local.json
+compose.yaml
+*.md

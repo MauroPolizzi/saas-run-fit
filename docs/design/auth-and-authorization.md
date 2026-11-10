@@ -1,6 +1,6 @@
 # Autenticación y autorización
 
-> Plataforma SaaS para entrenadores de running y fuerza. Fase 2, diseño técnico pendiente de aprobación. Versiones verificadas el 29/10/2026.
+> Plataforma SaaS para entrenadores de running y fuerza. Fase 2, diseño técnico aprobado (Fase 3 iniciada el 05/11/2026). Versiones verificadas el 29/10/2026.
 
 ## 7. Autenticación y autorización
 
@@ -78,7 +78,7 @@ Al migrar a .NET 11 se reevalúa la nueva protección CSRF automática que descr
 | `PlatformAdmin` | Rol `PlatformAdmin` **y** sesión iniciada con 2FA | Grupo `/api/admin` |
 | `ActiveSubscription` | Suscripción del entrenador en `Trial` o `Active` | Escrituras de `/api/coach` (la lectura sigue permitida con la suscripción vencida) |
 
-Cómo verificar que la sesión del administrador usó 2FA: Identity agrega un claim de método de autenticación al completar el segundo factor [A verificar en la Fase 3 el nombre y valor exactos del claim en .NET 10]. Si no estuviera disponible, se agrega un claim propio al completar el login con 2FA.
+Cómo verificar que la sesión del administrador usó 2FA: Identity agrega el claim `amr` con valor `mfa` al completar el segundo factor; la política `PlatformAdmin` ya lo exige desde la Fase 3. Se confirma con un test de integración al implementar el login con 2FA (Hito 1); si no estuviera disponible, se agrega un claim propio al completar el login con 2FA.
 
 **El rol no alcanza.** Cada caso de uso verifica además el recurso concreto:
 
@@ -117,7 +117,7 @@ Cómo verificar que la sesión del administrador usó 2FA: Identity agrega un cl
 | Suplantar usuarios | **No** | |
 | Asignar el rol `PlatformAdmin` | **No** desde la UI | Solo comando de línea |
 
-**Creación del primer administrador:** comando `admin create --email <email>` incluido en la misma aplicación (`dotnet CoachPlatform.Api.dll admin create ...`), que crea una invitación de administrador y envía el enlace; al aceptarla, la persona debe configurar 2FA antes de poder usar el panel. Cómo ejecutarlo en producción depende del proveedor (D6); se documenta en `docs/runbooks/`.
+**Creación del primer administrador:** comando `admin create --email <email>` incluido en la misma aplicación (`dotnet RunFitPlatform.Api.dll admin create ...`), que crea una invitación de administrador y envía el enlace; al aceptarla, la persona debe configurar 2FA antes de poder usar el panel. Cómo ejecutarlo en producción depende del proveedor (D6); se documenta en `docs/runbooks/`.
 
 ### 7.9. Datos de salud
 

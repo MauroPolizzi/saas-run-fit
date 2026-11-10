@@ -1,6 +1,6 @@
 # Diseño técnico
 
-> Plataforma SaaS para entrenadores de running y fuerza. Fase 2, diseño técnico pendiente de aprobación. Versiones verificadas el 29/10/2026.
+> Plataforma SaaS para entrenadores de running y fuerza. Fase 2, diseño técnico aprobado (Fase 3 iniciada el 05/11/2026). Versiones verificadas el 29/10/2026.
 
 ## 1. Punto de partida
 
@@ -26,12 +26,11 @@ Este diseño parte de las decisiones de Mauro del 29/10/2026 (registradas en `ar
 | Cuestión | ¿Bloquea este diseño? | ¿Cuándo hace falta? |
 |---|---|---|
 | **D6. Hosting y región** | No. El diseño es independiente del proveedor: imagen Docker, PostgreSQL estándar y migraciones como paso explícito | Antes de escribir el job de despliegue y antes de cerrar el Hito 0 |
-| **Repositorio público o privado**, y crearlo en GitHub | No | Antes de la Fase 3 (estructura inicial). Esta sesión no puede crear repositorios: Mauro lo crea y conecta GitHub |
-| **Nombre técnico de la solución** | No; se usa `CoachPlatform` como nombre provisorio | Antes de la Fase 3, porque fija namespaces y nombres de proyectos |
-| **Proveedor de email** | No; se diseña una interfaz `IEmailSender` | Hito 0. Recomendación: Resend (plan gratuito de 3.000 emails por mes y 100 por día, verificado el 26/10/2026) |
-| **Revisión legal** de datos de salud y política de privacidad | No para diseñar; sí para el piloto | Antes del piloto |
+| **Proveedor de email de producción** | No; existe la interfaz `IEmailSender` con Mailpit (desarrollo) e InMemory (tests) | Junto con D6, antes del primer despliegue. Opción evaluada: Resend (plan gratuito de 3.000 emails por mes y 100 por día, verificado el 26/10/2026) |
 
-### 1.3. Versiones de referencia (verificadas el 29/10/2026)
+**Resueltas el 05/11/2026:** repositorio privado en GitHub (`MauroPolizzi/saas-run-fit`); nombre técnico `RunFitPlatform` para la solución y los proyectos .NET, y `run-fit-platform` para Angular, Docker y Data Protection; rama principal `master`; email por Mailpit local mientras no haya despliegue; revisión legal de datos de salud y privacidad verificada por Mauro.
+
+### 1.3. Versiones de referencia (verificadas el 29/10/2026; las fijadas en la Fase 3 están en la sección 13.5)
 
 | Componente | Versión | Nota |
 |---|---|---|
@@ -53,7 +52,7 @@ Regla general para la Fase 3: cada dependencia se fija a una versión exacta pub
 ```text
 /
 ├── src/
-│   └── CoachPlatform.Api/                 Único proyecto de producción
+│   └── RunFitPlatform.Api/                 Único proyecto de producción
 │       ├── Program.cs                     Composición: servicios, middleware, módulos
 │       ├── Modules/
 │       │   ├── Accounts/                  Login, contraseñas, 2FA, invitaciones (aceptación)
@@ -64,6 +63,7 @@ Regla general para la Fase 3: cada dependencia se fija a una versión exacta pub
 │       │   ├── Billing/                   Plan, estado de suscripción, derechos
 │       │   └── Admin/                     Panel mínimo: entrenadores, invitaciones, cuentas, bajas, auditoría
 │       ├── Shared/
+│       │   ├── Configuration/             Opciones tipadas y su validación al arrancar
 │       │   ├── Persistence/               AppDbContext, convenciones, interceptores, filtros
 │       │   ├── Security/                  Usuario actual, alcance de datos, políticas, antiforgery
 │       │   ├── Web/                       ProblemDetails, filtros de endpoint, convenciones de rutas
@@ -72,11 +72,12 @@ Regla general para la Fase 3: cada dependencia se fija a una versión exacta pub
 │       │   └── Cli/                       Comandos de mantenimiento (crear administrador)
 │       ├── Persistence/Migrations/        Historial único de migraciones
 │       ├── openapi/v1.json                Contrato generado en build y versionado
+│       ├── wwwroot/                       Build de Angular (solo en la imagen Docker)
 │       ├── appsettings.json
 │       └── appsettings.Development.json
 ├── tests/
-│   ├── CoachPlatform.Api.UnitTests/       Dominio, casos de uso puros, tests de arquitectura
-│   └── CoachPlatform.Api.IntegrationTests/ API + PostgreSQL real (Testcontainers), matriz de autorización
+│   ├── RunFitPlatform.Api.UnitTests/       Dominio, casos de uso puros, tests de arquitectura
+│   └── RunFitPlatform.Api.IntegrationTests/ API + PostgreSQL real (Testcontainers), matriz de autorización
 ├── web/                                   Aplicación Angular 22
 │   ├── src/app/
 │   │   ├── core/                          Sesión, guards, manejo de errores, tipos de API generados
@@ -100,8 +101,9 @@ Regla general para la Fase 3: cada dependencia se fija a una versión exacta pub
 │   └── dependabot.yml
 ├── Dockerfile                             Build multi-etapa: Angular + .NET → imagen de runtime
 ├── compose.yaml                           PostgreSQL 18 y Mailpit para desarrollo local
-├── CoachPlatform.slnx                     Solución en formato `.slnx`, el formato por defecto de `dotnet new sln` desde el SDK 10 [Verificado]
-├── global.json                            Versión del SDK
+├── RunFitPlatform.slnx                     Solución en formato `.slnx`, el formato por defecto de `dotnet new sln` desde el SDK 10 [Verificado]
+├── global.json                            Versión del SDK y runner de tests (Microsoft.Testing.Platform)
+├── .config/dotnet-tools.json              dotnet-ef fijado
 ├── Directory.Build.props                  Nullable, analizadores, warnings como errores en CI
 ├── Directory.Packages.props               Versiones centralizadas de NuGet
 ├── .editorconfig
@@ -239,7 +241,7 @@ Todas las flechas apuntan además a `Shared`, que no aparece para no ensuciar el
 
 | Elemento | Convención | Ejemplo |
 |---|---|---|
-| Namespace raíz | `CoachPlatform.Api` (provisorio) | `CoachPlatform.Api.Modules.Planning.Features.Templates` |
+| Namespace raíz | `RunFitPlatform.Api` (provisorio) | `RunFitPlatform.Api.Modules.Planning.Features.Templates` |
 | Caso de uso | Verbo + sustantivo, clase estática contenedora | `AssignTemplate`, `RecordSessionLog`, `RevokeHealthConsent` |
 | Request / Response | Records anidados `Request`, `Response` | `AssignTemplate.Request` |
 | Ejecutor | Clase anidada `Handler`, registrada como scoped | `AssignTemplate.Handler` |
@@ -269,14 +271,14 @@ El código y la base usan **inglés** (términos del dominio en inglés: *coach*
 
 ### 4.4. Angular
 
-- Archivos en *kebab-case* según la guía de estilo oficial vigente de Angular [A verificar en la Fase 3 la convención de sufijos de la versión 22].
+- Archivos en *kebab-case* sin sufijo de tipo, como genera Angular 22 (`app.ts`, `pending-page.ts`, `coach.routes.ts`) [Verificado en la Fase 3].
 - Componentes standalone; prefijo de selector `cp-`.
 - Un servicio de datos por funcionalidad (`planning-api.ts`) que usa los tipos generados desde OpenAPI.
 - Señales con nombres sustantivos (`sessions`, `selectedWeek`); `computed` para derivados.
 
 ### 4.5. Git
 
-- Rama principal `main` protegida; ramas cortas `feat/...`, `fix/...`, `chore/...`, `docs/...`.
+- Rama principal `master` protegida; ramas cortas `feat/...`, `fix/...`, `chore/...`, `docs/...`.
 - Commits con Conventional Commits (`feat(planning): asignar plantilla a grupo`).
 - Merge por *squash* tras CI en verde.
 
@@ -288,7 +290,7 @@ El código y la base usan **inglés** (términos del dominio en inglés: *coach*
 |---|---|---|---|
 | `Development` | Máquina de Mauro | PostgreSQL 18 en `compose.yaml` | Mailpit local (captura los emails, no los envía) |
 | `Testing` | Tests de integración y E2E en CI | PostgreSQL 18 vía Testcontainers | Implementación en memoria que guarda los emails para inspeccionarlos en los tests |
-| `Production` | Usuarios reales | PostgreSQL administrado (proveedor según D6) | Proveedor real (recomendado: Resend) |
+| `Production` | Usuarios reales | PostgreSQL administrado (proveedor según D6) | Proveedor real (pendiente junto con D6) |
 
 Un entorno `Staging` se agrega solo cuando haya usuarios que no deban ver errores; no forma parte del MVP inicial.
 
@@ -314,7 +316,7 @@ Cada sección se enlaza a una clase de opciones con validación (`ValidateDataAn
 | `ConnectionStrings` | `Default` |
 | `Database` | `MigrateOnStartup` (solo `true` en Development), `CommandTimeoutSeconds` |
 | `Auth` | Duración de sesión, duración de sesión de administrador, vencimiento de invitaciones (7 días), intentos antes del bloqueo |
-| `Email` | `Provider` (`Mailpit`, `InMemory`, `Resend`), `From`, `ApiKey` |
+| `Email` | `Provider` (`Mailpit`, `InMemory`; el de producción se agrega con D6), `From`, `FromName`, `SmtpHost`, `SmtpPort` |
 | `RateLimiting` | Límites por política (login, recuperación, invitaciones, administración) |
 | `ReverseProxy` | Redes de confianza para `X-Forwarded-For` y `X-Forwarded-Proto` (depende de D6) |
 
@@ -381,7 +383,7 @@ Angular traduce cada `code` a un mensaje en español; el texto del servidor no s
 
 En el MVP: logs del proveedor y alertas básicas del proveedor (reinicios, errores 5xx) [según D6]. Un gestor de errores externo y OpenTelemetry se evalúan después del piloto.
 
-## 13. Fase 3: estructura inicial (pendiente de aprobación)
+## 13. Fase 3: estructura inicial
 
 ### 13.1. Qué se crearía
 
@@ -389,7 +391,7 @@ Solo lo necesario para empezar a desarrollar, sin funcionalidades de negocio:
 
 | Elemento | Contenido |
 |---|---|
-| Solución .NET | `CoachPlatform.slnx`, `global.json`, `Directory.Build.props`, `Directory.Packages.props`, `.editorconfig` |
+| Solución .NET | `RunFitPlatform.slnx`, `global.json`, `Directory.Build.props`, `Directory.Packages.props`, `.editorconfig` |
 | Proyecto API | `Program.cs` con la composición (Identity, cookies, antiforgery, ProblemDetails, OpenAPI, health checks, rate limiting, cabeceras), las carpetas de los siete módulos con su archivo `*Module.cs` vacío, `Shared/` con `AppDbContext`, alcance de datos y manejo de errores, y la primera migración (tablas de Identity y Data Protection) |
 | Tests | Los dos proyectos de tests, la infraestructura de Testcontainers, un test de arquitectura por regla de la sección 3.3, el test que exige que todo endpoint esté en la matriz de autorización, y un test de `/health/ready` |
 | Angular | Aplicación Angular 22 con Material, rutas por rol vacías, configuración XSRF, proxy de desarrollo, ESLint y Prettier, Vitest y un E2E de humo con Playwright |
@@ -403,13 +405,68 @@ Solo lo necesario para empezar a desarrollar, sin funcionalidades de negocio:
 ### 13.2. Lo que necesito antes de empezar
 
 1. **Aprobación explícita de este diseño técnico.**
-2. **Un repositorio en GitHub** creado por Mauro (público o privado), con GitHub conectado a Claude, para trabajar sobre él y abrir el PR de la estructura inicial.
-3. **Nombre técnico** de la solución (o confirmar `CoachPlatform`).
+2. **Un repositorio en GitHub** creado por Mauro (privado: `MauroPolizzi/saas-run-fit`). Los PR los abre Mauro desde GitHub.
+3. **Nombre técnico** de la solución: `RunFitPlatform`.
+
+Los tres puntos quedaron resueltos el 05/11/2026.
 
 ### 13.3. Herramientas y comandos que se ejecutarían
 
-En el entorno de trabajo de la sesión (no en la máquina de Mauro): instalar el SDK de .NET 10 y Node 24 si no están, `dotnet new` para la solución y los proyectos, `npm create`/`ng new` para Angular, restaurar paquetes NuGet y npm, y ejecutar build, tests y lint. Todo el resultado llega como un PR para revisar; nada se publica en producción.
+En la máquina de Mauro (SDK de .NET 10, Node 24 y Docker Desktop ya instalados): instalar el SDK de .NET 10 y Node 24 si no están, `dotnet new` para la solución y los proyectos, `npm create`/`ng new` para Angular, restaurar paquetes NuGet y npm, y ejecutar build, tests y lint. Todo el resultado queda en la rama `chore/initial-structure` para revisar; nada se publica en producción.
 
 ### 13.4. Validación al terminar la Fase 3
 
 Compilación de backend y frontend, tests unitarios y de integración, lint, build de la imagen Docker, verificación de que no hay secretos en el repositorio, versiones efectivamente instaladas y coherencia entre esta documentación y lo creado. El informe dirá qué se ejecutó y qué no se pudo ejecutar.
+
+### 13.5. Resultado (05/11/2026)
+
+Implementado en la rama `chore/initial-structure`. Validación ejecutada en la máquina de Mauro:
+
+| Verificación | Resultado |
+|---|---|
+| `dotnet format --verify-no-changes` | Sin cambios |
+| `dotnet build` con `CI=true` y `-warnaserror` | 0 advertencias, 0 errores |
+| Tests unitarios (arquitectura, alcance de datos, errores, antiforgery, opciones) | 130 correctos |
+| Tests de integración (PostgreSQL 18.6 con Testcontainers, migraciones desde cero) | 15 correctos |
+| Angular: `ng lint`, Prettier, Vitest, `ng build` de producción | Correctos (6 tests) |
+| Playwright (escritorio y móvil) contra `ng serve` y contra la imagen Docker | 2 correctos en cada caso |
+| `docker build` y ejecución en modo Production contra PostgreSQL | Imagen sana (`HEALTHCHECK` en `healthy`), usuario no root |
+| `npm audit --audit-level=high` y paquetes NuGet vulnerables | Sin hallazgos altos ni críticos |
+| gitleaks sobre el repositorio | Sin secretos |
+| actionlint sobre los workflows | Sin errores |
+
+Que los tests de arquitectura y la regla de imports entre features detectan violaciones se comprobó introduciendo una violación temporal en cada caso.
+
+**Versiones fijadas** (todas con al menos 14 días de publicadas al 05/11/2026):
+
+| Componente | Versión |
+|---|---|
+| SDK .NET | 10.0.401 en `global.json` con `rollForward: latestPatch`; imágenes `sdk:10.0.402-noble` y `aspnet:10.0.13-noble-chiseled-extra` |
+| Paquetes ASP.NET Core y EF Core | 10.0.13 |
+| Npgsql.EntityFrameworkCore.PostgreSQL / EFCore.NamingConventions | 10.0.3 / 10.0.1 |
+| Scalar.AspNetCore | 2.18.2 |
+| xUnit v3 / Testcontainers.PostgreSql / ArchUnitNET | 4.0.2 / 4.16.0 / 0.13.4 |
+| Angular / Angular CLI, Build y Material | 22.2.3 / 22.2.4 |
+| TypeScript / Vitest / Playwright | 6.0.3 / 5.0.5 / 1.64.1 |
+| ESLint / angular-eslint / typescript-eslint | 10.13.0 / 22.6.0 / 8.72.0 |
+| PostgreSQL / Mailpit / Node.js | 18.6 / 1.32.0 / 24.22.2 |
+
+**Decisiones tomadas durante la Fase 3:**
+
+| Tema | Decisión | Motivo |
+|---|---|---|
+| Ubicación de `AppUser` | `Shared/Security`, no `Modules/Accounts` | `AppDbContext` (en `Shared`) lo necesita y `Shared` no puede depender de módulos. Las tablas `identity.*` las configura solo `Accounts/Persistence` |
+| Librería de tests de arquitectura | ArchUnitNET 0.13.4 | NetArchTest no publica versiones desde 2021 |
+| Runner de tests .NET | Microsoft.Testing.Platform (`global.json`) | El SDK 10 ya no ejecuta xUnit v3 con VSTest desde `dotnet test` |
+| Limpieza de datos entre tests de integración | Se decide en el Hito 1 | Todavía no hay tablas de negocio |
+| `openapi/v1.json` en build | La generación no valida opciones ni persiste claves en la base | La herramienta ejecuta la aplicación sin configuración real |
+| `vite` | Fijado en 8.3.5 con `overrides` | `@angular/build` 22.2.4 trae `vite` 8.3.0 con una vulnerabilidad alta; 8.3.5 la corrige y cumple la regla de dos semanas (Angular 22.2.5 adoptó la misma versión) |
+| Fuentes | Fuentes del sistema, sin Google Fonts | La CSP (`font-src 'self'`) bloquea fuentes externas; se pueden alojar fuentes propias más adelante |
+| `index.html` de producción | `inlineCritical: false` | El CSS crítico en línea usa un `onload` que la CSP bloquea |
+| Cifrado GSS de Npgsql | Desactivado por defecto | La imagen chiseled no incluye `libgssapi_krb5` y no se usa Kerberos |
+| `HEALTHCHECK` de la imagen | `dotnet RunFitPlatform.Api.dll healthcheck` | La imagen chiseled no tiene shell ni curl |
+| Angular en desarrollo | `http://localhost:4200` con proxy a `https://localhost:5001` | Los navegadores aceptan cookies `Secure` y `__Host-` en `localhost`; evita el aviso de certificado de `ng serve --ssl` |
+| Política `PlatformAdmin` | Rol + claim `amr = mfa` | Lo agrega `SignInManager` al completar el segundo factor; se confirma con un test al implementar el login con 2FA (Hito 1) |
+| Secretos en CI | gitleaks en contenedor | El escaneo nativo de GitHub en repositorios privados requiere GitHub Advanced Security |
+
+**Pendiente para los hitos siguientes:** política `ActiveSubscription` (Billing), sesión de 8 horas del administrador (se aplica al iniciar sesión), comando `admin create`, interceptor de `created_at`/`updated_at`, `Shared/Auditing` (`admin.audit_events`), ids de relaciones activas en `IDataScope`, actores autenticados en la matriz de autorización y generador de tipos TypeScript (`openapi-typescript` 7.13.0 exige TypeScript 5).

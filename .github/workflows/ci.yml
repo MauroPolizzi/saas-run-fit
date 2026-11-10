@@ -1,0 +1,144 @@
+# CI: cada pull request y cada push a master (docs/design/ci-cd.md, sección 12.2).
+# Acciones fijadas por SHA; el comentario indica la versión.
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [master]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+  NUGET_PACKAGES: ${{ github.workspace }}/.nuget/packages
+
+jobs:
+  backend:
+    name: Backend
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          global-json-file: global.json
+          cache: true
+          cache-dependency-path: '**/packages.lock.json'
+
+      - name: Restaurar herramientas y paquetes
+        run: |
+          dotnet tool restore
+          dotnet restore RunFitPlatform.slnx --locked-mode
+
+      - name: Formato
+        run: dotnet format RunFitPlatform.slnx --verify-no-changes --no-restore
+
+      - name: Build (warnings como errores)
+        run: dotnet build RunFitPlatform.slnx --configuration Release --no-restore -warnaserror
+
+      - name: Contrato OpenAPI sin cambios sin commitear
+        run: |
+          if ! git diff --exit-code -- src/RunFitPlatform.Api/openapi/v1.json; then
+            echo "::error::openapi/v1.json cambió en el build. Regeneralo localmente (dotnet build) y commitealo."
+            exit 1
+          fi
+
+      - name: Tests unitarios
+        run: dotnet test --project tests/RunFitPlatform.Api.UnitTests --configuration Release --no-build
+
+      - name: Tests de integración (PostgreSQL con Testcontainers)
+        run: dotnet test --project tests/RunFitPlatform.Api.IntegrationTests --configuration Release --no-build
+
+      - name: SQL idempotente de migraciones
+        run: |
+          mkdir -p artifacts
+          dotnet ef migrations script --idempotent \
+            --project src/RunFitPlatform.Api --configuration Release --no-build \
+            --output artifacts/migrations.sql
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: migrations-sql
+          path: artifacts/migrations.sql
+          retention-days: 30
+
+  frontend:
+    name: Frontend
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24.22.2
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run format:check
+      - run: npm test
+      - run: npm run build
+
+  docker:
+    name: Imagen Docker (sin publicar)
+    needs: [backend, frontend]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+      - uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: .
+          push: false
+          tags: run-fit-platform:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  security:
+    name: Seguridad
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          global-json-file: global.json
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24.22.2
+
+      - name: Paquetes NuGet vulnerables
+        run: |
+          dotnet restore RunFitPlatform.slnx --locked-mode
+          dotnet list RunFitPlatform.slnx package --vulnerable --include-transitive | tee vulnerable.txt
+          if grep -qE '^\s+>' vulnerable.txt; then
+            echo "::error::Hay paquetes NuGet con vulnerabilidades conocidas."
+            exit 1
+          fi
+
+      - name: Paquetes npm vulnerables (alta o crítica)
+        working-directory: web
+        run: npm audit --audit-level=high
+
+      - name: Escaneo de secretos (gitleaks)
+        run: |
+          docker run --rm -v "${{ github.workspace }}:/repo" zricethezav/gitleaks:v8.30.1 \
+            git /repo --redact --no-banner

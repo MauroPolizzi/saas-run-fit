@@ -1,0 +1,42 @@
+# .NET
+bin/
+obj/
+*.user
+*.suo
+.vs/
+TestResults/
+*.trx
+coverage*/
+artifacts/
+
+# Node / Angular
+node_modules/
+web/dist/
+web/.angular/
+web/coverage/
+web/test-results/
+web/playwright-report/
+web/blob-report/
+web/playwright/.cache/
+
+# IDE y SO
+.idea/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+.DS_Store
+Thumbs.db
+
+# Secretos y entornos locales
+.env
+.env.*
+*.pfx
+*.pem
+appsettings.*.local.json
+
+# Bundles de migraciones
+efbundle*
+
+# Build de Angular copiado a wwwroot (solo en la imagen Docker)
+src/RunFitPlatform.Api/wwwroot/*
+!src/RunFitPlatform.Api/wwwroot/.gitkeep

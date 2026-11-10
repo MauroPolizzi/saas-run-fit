@@ -1,0 +1,27 @@
+{
+  "openapi": "3.1.1",
+  "info": {
+    "title": "Run Fit Platform API",
+    "version": "v1"
+  },
+  "paths": {
+    "/api/auth/antiforgery": {
+      "get": {
+        "tags": [
+          "Auth"
+        ],
+        "operationId": "GetAntiforgeryToken",
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        }
+      }
+    }
+  },
+  "tags": [
+    {
+      "name": "Auth"
+    }
+  ]
+}
